@@ -3,12 +3,14 @@ import json
 from sys import exit
 terrariaConfigDir = '/home/joris/.local/share/Terraria/'
 steamWorkshopDir = '/home/joris/.steam/debian-installation/steamapps/workshop/content/105600/'
-confDir = os.path.join(terrariaConfigDir, 'config_tmp.json')
+confDir = os.path.join(terrariaConfigDir, 'config.json')
 
 def listPacks(active):
     print('Printing Active Packs')
     if os.path.exists(confDir):
-        jsonData = json.load(open(confDir, 'r'))
+        config_fp = open(confDir, 'r')
+        jsonData = json.load(config_fp)
+        config_fp.close()
         #print(jsonData['ResourcePacks'])
         for pack in jsonData['ResourcePacks']:
             if pack['Enabled'] is active:
@@ -35,9 +37,11 @@ def listPacks(active):
                 print(f'#{pack['SortingOrder']}\t- {packName}')
 
 def packReorder():
-    print('Input current position: ')
+    listPacks(True)
+    print('')
+    print('Current position: ')
     old = int(input())
-    print('Input new position: ')
+    print('New position: ')
     new = int(input())
     #if old > new
     #    if x < old and x >= new -> x=x+1
@@ -45,37 +49,30 @@ def packReorder():
     #    if x > old and x <= new -> x=x-1
     if old == new:
         return
-    #elif old > new:
-    #    func = moveDown()
-    #elif old < new:
-    #    func = moveUp()
     if os.path.exists(confDir):
-        jsonData = json.load(open(confDir, 'r'))
-        if old > new:
-            for pack in jsonData['ResourcePacks']:
-                if pack['Enabled'] is True:
-                    x = pack['SortingOrder']
+        config_fp = open(confDir, 'r')
+        jsonData = json.load(config_fp)
+        config_fp.close()
+        for pack in jsonData['ResourcePacks']:
+            if pack['Enabled'] is True:
+                x = pack['SortingOrder']
+                if old > new:
                     if x == old:
                         val = new
                     elif old > x >= new:
                         val = x+1
                     else: continue
-                    pack.update({'SortingOrder': val})
-                    print(f'Was at {x}\tmoved to {val}\t- {pack['FileName']}')
-        elif old < new:
-            for pack in jsonData['ResourcePacks']:
-                if pack['Enabled'] is True:
-                    x = pack['SortingOrder']
+                else: #if old < new
                     if x == old:
                         val = new
                     elif old < x <= new:
-                        val = x-1
+                        val = x - 1
                     else: continue
-                    pack.update({'SortingOrder': val})
-                    print(f'Was at {x}\tmoved to {val}\t- {pack['FileName']}')
-        tmpDir = os.path.join(terrariaConfigDir, 'config_tmp.json')
-        fd = open(tmpDir, 'w')
-        json.dump(jsonData,open(confDir, 'w'),indent=4)
+                pack.update({'SortingOrder': val})
+                print(f'Was at {x}\tmoved to {val}\t- {pack['FileName']}')
+        config_fp = open(confDir, 'w')
+        json.dump(jsonData,config_fp,indent=4)
+        config_fp.close()
     return
 
 def packDeactivate():
@@ -84,25 +81,27 @@ def packDeactivate():
 def packActivate():
     return
 
+def backup_config():
+    os.popen(f"cp {confDir} {os.path.join(terrariaConfigDir,'config.json.bckp')}")
+
 def start():
+    backup_config()
     while True:
         print('Welcome to TRPH!')
-        print('[1] => List Active Packs\n[2] => Reorder Pack\n[3] => Deactivate Pack\n[4] => List Inactive Packs\n[5] => Activate Pack\n[6] => Exit')
+        #print('[1] => List Active Packs\n[2] => Reorder Pack\n[3] => Deactivate Pack\n[4] => List Inactive Packs\n[5] => Activate Pack\n[6] => Exit')
+        print('[1] => List Active Packs\n[2] => Reorder Pack\n[4] => List Inactive Packs\n[6] => Exit')
         prompt = input('> ')
         if prompt == '1':
             listPacks(True)
         elif prompt == '2':
             packReorder()
-            break
         elif prompt == '3':
             packDeactivate()
-            break
         elif prompt == '4':
             listPacks(False)
         elif prompt == '5':
             packActivate()
-            break
-        elif prompt == '5':
+        elif prompt == '6':
             exit()
         else:
             print('(ERROR) Invalid option passed, exiting.')

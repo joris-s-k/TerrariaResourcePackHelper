@@ -1,9 +1,11 @@
 import os, sys, io
 import json
 from sys import exit
-terrariaConfigDir = '/home/joris/.local/share/Terraria/'
-steamWorkshopDir = '/home/joris/.steam/debian-installation/steamapps/workshop/content/105600/'
-confDir = os.path.join(terrariaConfigDir, 'config.json')
+from presets import managePresets
+terrariaConfigDir = 'C:\\Users\\Joris\\Documents\\My games\\Terraria\\'
+steamWorkshopDir = 'H:\\SteamLibrary\\steamapps\\workshop\\content\\105600'
+confPath = os.path.join(terrariaConfigDir, 'config.json')
+
 
 def getSafeFile(file) -> str:
     fileStub = []
@@ -16,10 +18,12 @@ def getSafeFile(file) -> str:
 
 def listPacks(active):
     print('Printing Active Packs')
-    if os.path.exists(confDir):
-        config_fp = open(confDir, 'r')
+    if os.path.exists(confPath):
+        print(f'Order\t- ID      \t- Name')
+        config_fp = open(confPath, 'r')
         jsonData = json.load(config_fp)
         config_fp.close()
+        pathType = ""
         #print(jsonData['ResourcePacks'])
         for pack in jsonData['ResourcePacks']:
             if pack['Enabled'] is active:
@@ -32,17 +36,26 @@ def listPacks(active):
                     #print(steamDir)
                     #packName = json.load(open(steamDir, 'r'))['Name']
                     fixedFile = getSafeFile(io.open(steamDir, 'r', encoding='utf-8-sig'))
-                    packName = json.loads(fixedFile)['Name']
+                    pathType = packName
+                    try:
+                        packName = json.loads(fixedFile)['Name']
+                    except:
+                        print(f'ERROR: Name of pack {packName} could not be read.')
                     #packName = json.load(io.open(steamDir, 'r', encoding='utf-8-sig'),strict=False)['Name']
                 elif os.path.exists(localDir):
                     jsonName = 'pack.json' if os.path.exists(os.path.join(localDir,'pack.json')) else 'Pack.json'
                     if os.path.exists(os.path.join(localDir,jsonName)):
                         fixedFile = getSafeFile(io.open(os.path.join(localDir,jsonName), 'r', encoding='utf-8-sig'))
-                        packName = json.loads(fixedFile)['Name']
+                        pathType = "LOCAL00000"
+                        try:
+                            packName = json.loads(fixedFile)['Name']
+                        except:
+                            print(f'ERROR: Name of pack {packName} could not be read.')
                         #packName = json.load(io.open(os.path.join(terrariaConfigDir,'ResourcePacks',name,jsonName), 'r', encoding='utf-8-sig'),strict=False)['Name']                
                 else:
                     print(f'(ERROR): {name} not found on disk')
-                print(f'#{pack['SortingOrder']}\t- {packName}')
+                    continue
+                print(f'#{pack['SortingOrder']}\t- {pathType}\t- {packName}')
 
 def packReorder():
     listPacks(True)
@@ -57,8 +70,8 @@ def packReorder():
     #    if x > old and x <= new -> x=x-1
     if old == new:
         return
-    if os.path.exists(confDir):
-        config_fp = open(confDir, 'r')
+    if os.path.exists(confPath):
+        config_fp = open(confPath, 'r')
         jsonData = json.load(config_fp)
         config_fp.close()
         for pack in jsonData['ResourcePacks']:
@@ -78,7 +91,7 @@ def packReorder():
                     else: continue
                 pack.update({'SortingOrder': val})
                 print(f'Was at {x}\tmoved to {val}\t- {pack['FileName']}')
-        config_fp = open(confDir, 'w')
+        config_fp = open(confPath, 'w')
         json.dump(jsonData,config_fp,indent=4)
         config_fp.close()
     return
@@ -90,14 +103,17 @@ def packActivate():
     return
 
 def backup_config():
-    os.popen(f"cp {confDir} {os.path.join(terrariaConfigDir,'config.json.bckp')}")
+    os.popen(f'copy \"{confPath}\" \"{os.path.join(terrariaConfigDir,'config.json.bckp')}\"')
+    if not os.path.exists('conf.json'):
+        open('conf.json', 'w').write('{}')
 
 def start():
     backup_config()
+    listPacks(True)
     while True:
         print('Welcome to TRPH!')
         #print('[1] => List Active Packs\n[2] => Reorder Pack\n[3] => Deactivate Pack\n[4] => List Inactive Packs\n[5] => Activate Pack\n[6] => Exit')
-        print('[1] => List Active Packs\n[2] => Reorder Pack\n[4] => List Inactive Packs\n[6] => Exit')
+        print('[1] => List Active Packs\n[2] => Reorder Pack\n[4] => List Inactive Packs\n[6] => EXIT\n[7] => Manage Presets')
         prompt = input('> ')
         if prompt == '1':
             listPacks(True)
@@ -111,6 +127,8 @@ def start():
             packActivate()
         elif prompt == '6':
             exit()
+        elif prompt == '7':
+            managePresets()
         else:
             print('(ERROR) Invalid option passed, exiting.')
             exit()

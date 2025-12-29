@@ -1,5 +1,7 @@
+import itertools
 import json
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from sys import exit
 from typing import Optional
@@ -133,9 +135,64 @@ def backup_config():
     if not os.path.exists('conf.json'):
         open('conf.json', 'w').write('{}')
 
+
+# Data Class, decorator sorgt für die nötigen standardfunktionen (constructor, compare, etc.)
+@dataclass
+class InactivePack:
+    name: str
+    type: str
+
+
+def show_inactive() -> list[InactivePack]:
+    config_json = load_conf_as_json()
+
+    # enabled_packs = set()
+    # for pack in config_json['ResourcePacks']:
+    #    if not pack['Enabled']:
+    #        continue
+    #    enabled_packs.add(pack['FileName'])
+
+    # stattdessen Set Comprehension, (geht auch mit Listen und Dicts)
+    enabled_packs = {pack['FileName'] for pack in config_json['ResourcePacks'] if not pack['Enabled']}
+
+    pack_dirs_entries = itertools.chain(steam_workshop_dir.iterdir(),
+                                        terraria_config_dir.joinpath('ResourcePacks').iterdir())
+    inactive_packs = []
+    for entry in pack_dirs_entries:
+        if entry.is_file():
+            if entry.suffix == '.zip':
+                inactive_packs.append(InactivePack(entry.name, 'LOCAL ZIP'))
+            continue
+
+        if entry.name in enabled_packs:
+            continue
+
+        pack_path = get_pack_json_path(entry)
+        if pack_path is not None:
+            try:
+                fixed_file = get_safe_file(pack_path)
+                pack_name = json.loads(fixed_file)['Name']
+
+            except:
+                print(f'ERROR: Name of pack {entry.name} could not be read.')
+                continue
+
+            pack_type = 'LOCAL'
+            if pack_path.is_relative_to(steam_workshop_dir):
+                pack_type = entry.name
+            inactive_packs.append(InactivePack(pack_name, pack_type))
+        else:
+            print(f'ERROR: pack.json for {entry.name} does not exist.')
+    inactive_packs.sort(key=lambda x: x.name)
+    for i, pack in enumerate(inactive_packs):
+        print(f'#{i:<3} - {pack.type:<10} - {pack.name}')
+    return inactive_packs
+
+
 def start():
     backup_config()
     list_packs(True)
+    inactive_packs = []
     while True:
         print('Welcome to TRPH!')
         # print('[1] => List Active Packs\n[2] => Reorder Pack\n[3] => Deactivate Pack\n[4] => List Inactive Packs\n[5] => Activate Pack\n[6] => Exit')
@@ -149,7 +206,7 @@ def start():
         elif prompt == '3':
             pack_deactivate()
         elif prompt == '4':
-            listPacks(False)
+            inactive_packs = show_inactive()
         elif prompt == '5':
             pack_activate()
         elif prompt == '6':

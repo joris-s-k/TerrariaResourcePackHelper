@@ -7,13 +7,14 @@ steamWorkshopDir = 'H:\\SteamLibrary\\steamapps\\workshop\\content\\105600'
 confPath = os.path.join(terrariaConfigDir, 'config.json')
 
 
-def getSafeFile(file) -> str:
-    fileStub = []
-    for line in file:
-        fileStub.append(line)
-        if 'Name' in line:
-            break
-    return ''.join(fileStub)+'"Dummy": ""}'
+def getSafeFile(path: str) -> str:
+    with io.open(path, 'r', encoding='utf-8-sig') as unsafeFile:
+        fileStub = []
+        for line in unsafeFile:
+            fileStub.append(line)
+            if 'Name' in line:
+                break
+        return ''.join(fileStub)+'"Dummy": ""}'
     
 
 def listPacks(active):
@@ -35,7 +36,7 @@ def listPacks(active):
                 if os.path.exists(steamDir):
                     #print(steamDir)
                     #packName = json.load(open(steamDir, 'r'))['Name']
-                    fixedFile = getSafeFile(io.open(steamDir, 'r', encoding='utf-8-sig'))
+                    fixedFile = getSafeFile(steamDir)
                     pathType = packName
                     try:
                         packName = json.loads(fixedFile)['Name']
@@ -45,7 +46,7 @@ def listPacks(active):
                 elif os.path.exists(localDir):
                     jsonName = 'pack.json' if os.path.exists(os.path.join(localDir,'pack.json')) else 'Pack.json'
                     if os.path.exists(os.path.join(localDir,jsonName)):
-                        fixedFile = getSafeFile(io.open(os.path.join(localDir,jsonName), 'r', encoding='utf-8-sig'))
+                        fixedFile = getSafeFile(os.path.join(localDir,jsonName))
                         pathType = "LOCAL00000"
                         try:
                             packName = json.loads(fixedFile)['Name']

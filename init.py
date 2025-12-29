@@ -7,26 +7,26 @@ from typing import Optional
 from presets import managePresets
 
 # Pfade könnten auch als Path objekte implementiert werden
-terrariaConfigDir = 'C:\\Users\\Joris\\Documents\\My games\\Terraria\\'
-steamWorkshopDir = 'H:\\SteamLibrary\\steamapps\\workshop\\content\\105600'
-confPath = os.path.join(terrariaConfigDir, 'config.json')
+terraria_config_dir = Path('C:\\Users\\Joris\\Documents\\My games\\Terraria\\')
+steam_workshop_dir = Path('H:\\SteamLibrary\\steamapps\\workshop\\content\\105600')
+conf_path = os.path.join(terraria_config_dir, 'config.json')
 
 
 def get_safe_file(path: Path) -> str:
     with path.open('r', encoding='utf-8-sig') as unsafeFile:
-        fileStub = []
+        file_stub = []
         for line in unsafeFile:
-            fileStub.append(line)
+            file_stub.append(line)
             if 'Name' in line:
                 break
-        return ''.join(fileStub) + '"Dummy": ""}'
+        return ''.join(file_stub) + '"Dummy": ""}'
 
 
 def load_conf_as_json() -> dict:
-    if not os.path.exists(confPath):
-        raise FileNotFoundError(f'ERROR: Config file not found at {confPath}')
+    if not os.path.exists(conf_path):
+        raise FileNotFoundError(f'ERROR: Config file not found at {conf_path}')
 
-    with open(confPath, 'r') as configFp:
+    with open(conf_path, 'r') as configFp:
         return json.load(configFp)
 
 
@@ -42,15 +42,15 @@ def list_packs(active: bool):
             continue
         directoryName = pack['FileName']
         packName = pack['FileName']
-        steamDir = Path(steamWorkshopDir, directoryName)
-        localDir = Path(terrariaConfigDir, 'ResourcePacks', directoryName)
+        steamDir = steam_workshop_dir / directoryName
+        localDir = terraria_config_dir / 'ResourcePacks' / directoryName
         packDir = None
         pathType = packName
         if steamDir.exists():
             packDir = steamDir
         elif localDir.exists():
             packDir = localDir
-            pathType = "LOCAL00000"
+            pathType = "LOCAL"
 
         if packDir is not None:
             pack_file_path = get_pack_json_path(packDir)
@@ -65,7 +65,7 @@ def list_packs(active: bool):
         else:
             error = f'ERROR: {directoryName} not found on disk'
 
-        print(f'#{pack['SortingOrder']}\t- {pathType}\t- {packName}')
+        print(f'#{pack['SortingOrder']:<3} - {pathType:<10} - {packName}')
         if error is not None:
             print(error)
 
@@ -92,8 +92,8 @@ def pack_reorder():
     #    if x > old and x <= new -> x=x-1
     if old == new:
         return
-    if os.path.exists(confPath):
-        config_fp = open(confPath, 'r')
+    if os.path.exists(conf_path):
+        config_fp = open(conf_path, 'r')
         jsonData = json.load(config_fp)
         config_fp.close()
         for pack in jsonData['ResourcePacks']:
@@ -115,7 +115,7 @@ def pack_reorder():
                         continue
                 pack.update({'SortingOrder': val})
                 print(f'Was at {x}\tmoved to {val}\t- {pack['FileName']}')
-        with open(confPath, 'w') as config_fp:
+        with open(conf_path, 'w') as config_fp:
             json.dump(jsonData, config_fp, indent=4)
     return
 
@@ -129,7 +129,7 @@ def pack_activate():
 
 
 def backup_config():
-    os.popen(f'copy \"{confPath}\" \"{os.path.join(terrariaConfigDir, 'config.json.bckp')}\"')
+    os.popen(f'copy \"{conf_path}\" \"{os.path.join(terraria_config_dir, 'config.json.bckp')}\"')
     if not os.path.exists('conf.json'):
         open('conf.json', 'w').write('{}')
 

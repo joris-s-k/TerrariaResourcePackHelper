@@ -17,7 +17,7 @@ def getSafeFile(path: str) -> str:
         return ''.join(fileStub)+'"Dummy": ""}'
     
 
-def listPacks(active):
+def listPacks(active: bool):
     print('Printing Active Packs')
     if os.path.exists(confPath):
         print(f'Order\t- ID      \t- Name')

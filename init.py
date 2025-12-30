@@ -283,7 +283,7 @@ def start():
         elif prompt == 'p':
             managePresets()
         else:
-            print_err('Invalid option passed, exiting.')
+            print_err('Invalid option passed!.')
 
 
 start()

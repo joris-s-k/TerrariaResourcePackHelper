@@ -12,6 +12,7 @@ from presets import managePresets
 terraria_config_dir = Path('C:\\Users\\Joris\\Documents\\My games\\Terraria\\')
 steam_workshop_dir = Path('H:\\SteamLibrary\\steamapps\\workshop\\content\\105600')
 conf_path = os.path.join(terraria_config_dir, 'config.json')
+conf_path = terraria_config_dir / 'config.json'
 
 
 # Data Class, decorator sorgt für die nötigen standardfunktionen (constructor, compare, etc.)
@@ -27,20 +28,23 @@ def print_err(error: str):
 
 
 def conf_load_as_json() -> dict:
-    if not os.path.exists(conf_path):
+    if not conf_path.exists():
         raise FileNotFoundError(f'ERROR: Config file not found at {conf_path}')
 
-    with open(conf_path, 'r') as configFp:
-        return json.load(configFp)
+    with conf_path.open('r') as config_fp:
+        return json.load(config_fp)
 
 
 def json_dump_to_conf(json_data: dict) -> None:
-    with open(conf_path, 'w') as config:
+    if not conf_path.exists():
+        raise FileNotFoundError(f'ERROR: Config file not found at {conf_path}')
+
+    with conf_path.open('w') as config:
         json.dump(json_data, config, indent=4)
 
 
 def conf_backup():
-    os.popen(f'copy \"{conf_path}\" \"{os.path.join(terraria_config_dir, 'config.json.bckp')}\"')
+    os.popen(f'copy \"{conf_path}\" \"{terraria_config_dir / 'config.json.bckp'}\"')
     if not os.path.exists('conf.json'):
         open('conf.json', 'w').write('{}')
 

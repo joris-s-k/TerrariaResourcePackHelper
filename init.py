@@ -65,41 +65,41 @@ def get_pack_json_path(pack_path: Path) -> Optional[Path]:
 
 
 def pack_list_active(active: bool):
-    jsonData = conf_load_as_json()
+    json_data = conf_load_as_json()
 
     print('Printing Active Packs')
     print(f'Order\t- ID      \t- Name')
 
-    for pack in sorted(jsonData['ResourcePacks'], key=lambda x: x['SortingOrder']):
+    for pack in sorted(json_data['ResourcePacks'], key=lambda x: x['SortingOrder']):
         error = None
         if pack['Enabled'] is not active:
             continue
-        directoryName = pack['FileName']
-        packName = pack['FileName']
-        steamDir = steam_workshop_dir / directoryName
-        localDir = terraria_config_dir / 'ResourcePacks' / directoryName
-        packDir = None
-        pathType = packName
-        if steamDir.exists():
-            packDir = steamDir
-        elif localDir.exists():
-            packDir = localDir
-            pathType = "LOCAL"
+        directory_name = pack['FileName']
+        pack_name = pack['FileName']
+        steam_dir = steam_workshop_dir / directory_name
+        local_dir = terraria_config_dir / 'ResourcePacks' / directory_name
+        pack_dir = None
+        path_type = pack_name
+        if steam_dir.exists():
+            pack_dir = steam_dir
+        elif local_dir.exists():
+            pack_dir = local_dir
+            path_type = "LOCAL"
 
-        if packDir is not None:
-            pack_file_path = get_pack_json_path(packDir)
+        if pack_dir is not None:
+            pack_file_path = get_pack_json_path(pack_dir)
             if pack_file_path is None:
-                error = f'pack.json for {packName} not found.'
+                error = f'pack.json for {pack_name} not found.'
             else:
                 try:
                     fixedFile = get_safe_file(pack_file_path)
-                    packName = json.loads(fixedFile)['Name']
+                    pack_name = json.loads(fixedFile)['Name']
                 except:
-                    error = f'Name of pack {packName} could not be read.'
+                    error = f'Name of pack {pack_name} could not be read.'
         else:
-            error = f'{directoryName} not found on disk'
+            error = f'{directory_name} not found on disk'
 
-        print(f'#{pack['SortingOrder']:>3} - {pathType:<10} - {packName}')
+        print(f'#{pack['SortingOrder']:>3} - {path_type:<10} - {pack_name}')
         if error is not None:
             print_err(error)
 

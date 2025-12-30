@@ -14,6 +14,37 @@ steam_workshop_dir = Path('H:\\SteamLibrary\\steamapps\\workshop\\content\\10560
 conf_path = os.path.join(terraria_config_dir, 'config.json')
 
 
+# Data Class, decorator sorgt für die nötigen standardfunktionen (constructor, compare, etc.)
+@dataclass
+class InactivePack:
+    name: str
+    type: str
+    dir: str
+
+
+def print_err(error: str):
+    print('\033[31mERROR:\033[0m', error)
+
+
+def conf_load_as_json() -> dict:
+    if not os.path.exists(conf_path):
+        raise FileNotFoundError(f'ERROR: Config file not found at {conf_path}')
+
+    with open(conf_path, 'r') as configFp:
+        return json.load(configFp)
+
+
+def json_dump_to_conf(json_data: dict) -> None:
+    with open(conf_path, 'w') as config:
+        json.dump(json_data, config, indent=4)
+
+
+def conf_backup():
+    os.popen(f'copy \"{conf_path}\" \"{os.path.join(terraria_config_dir, 'config.json.bckp')}\"')
+    if not os.path.exists('conf.json'):
+        open('conf.json', 'w').write('{}')
+
+
 def get_safe_file(path: Path) -> str:
     with path.open('r', encoding='utf-8-sig') as unsafeFile:
         file_stub = []
@@ -24,16 +55,17 @@ def get_safe_file(path: Path) -> str:
         return ''.join(file_stub) + '"Dummy": ""}'
 
 
-def load_conf_as_json() -> dict:
-    if not os.path.exists(conf_path):
-        raise FileNotFoundError(f'ERROR: Config file not found at {conf_path}')
+def get_pack_json_path(pack_path: Path) -> Optional[Path]:
+    pack_file_path = pack_path / 'pack.json'
+    if not pack_file_path.exists():
+        pack_file_path = pack_path / 'Pack.json'
+    if not pack_file_path.exists():
+        return None
+    return pack_file_path
 
-    with open(conf_path, 'r') as configFp:
-        return json.load(configFp)
 
-
-def list_packs(active: bool):
-    jsonData = load_conf_as_json()
+def pack_list_active(active: bool):
+    jsonData = conf_load_as_json()
 
     print('Printing Active Packs')
     print(f'Order\t- ID      \t- Name')
@@ -57,32 +89,27 @@ def list_packs(active: bool):
         if packDir is not None:
             pack_file_path = get_pack_json_path(packDir)
             if pack_file_path is None:
-                error = f'ERROR: pack.json for {packName} not found.'
+                error = f'pack.json for {packName} not found.'
             else:
                 try:
                     fixedFile = get_safe_file(pack_file_path)
                     packName = json.loads(fixedFile)['Name']
                 except:
-                    error = f'ERROR: Name of pack {packName} could not be read.'
+                    error = f'Name of pack {packName} could not be read.'
         else:
-            error = f'ERROR: {directoryName} not found on disk'
+            error = f'{directoryName} not found on disk'
 
-        print(f'#{pack['SortingOrder']:<3} - {pathType:<10} - {packName}')
+        print(f'#{pack['SortingOrder']:>3} - {pathType:<10} - {packName}')
         if error is not None:
-            print(error)
+            print_err(error)
 
 
-def get_pack_json_path(pack_path: Path) -> Optional[Path]:
-    pack_file_path = pack_path / 'pack.json'
-    if not pack_file_path.exists():
-        pack_file_path = pack_path / 'Pack.json'
-    if not pack_file_path.exists():
-        return None
-    return pack_file_path
+def compute_max_sort_index(json_data: dict) -> int:
+    return max((pack['SortingOrder'] for pack in json_data['ResourcePacks']), default=0)
 
 
 def pack_reorder():
-    list_packs(True)
+    pack_list_active(True)
     print('')
     print('Current position: ')
     old = int(input())
@@ -94,127 +121,152 @@ def pack_reorder():
     #    if x > old and x <= new -> x=x-1
     if old == new:
         return
-    if os.path.exists(conf_path):
-        config_fp = open(conf_path, 'r')
-        jsonData = json.load(config_fp)
-        config_fp.close()
-        for pack in jsonData['ResourcePacks']:
-            if pack['Enabled'] is True:
-                x = pack['SortingOrder']
-                if old > new:
-                    if x == old:
-                        val = new
-                    elif old > x >= new:
-                        val = x + 1
-                    else:
-                        continue
-                else:  # if old < new
-                    if x == old:
-                        val = new
-                    elif old < x <= new:
-                        val = x - 1
-                    else:
-                        continue
-                pack.update({'SortingOrder': val})
-                print(f'Was at {x}\tmoved to {val}\t- {pack['FileName']}')
-        with open(conf_path, 'w') as config_fp:
-            json.dump(jsonData, config_fp, indent=4)
-    return
+
+    json_data = conf_load_as_json()
+
+    for pack in json_data['ResourcePacks']:
+        if not pack['Enabled']:
+            continue
+        x = pack['SortingOrder']
+        if old > new:
+            if x == old:
+                val = new
+            elif old > x >= new:
+                val = x + 1
+            else:
+                continue
+        else:  # if old < new
+            if x == old:
+                val = new
+            elif old < x <= new:
+                val = x - 1
+            else:
+                continue
+        pack.update({'SortingOrder': val})
+        print(f'Was at {x:>3} moved to {val:>3} - {pack['FileName']}')
+    json_dump_to_conf(json_data)
 
 
 def pack_deactivate():
-    return
+    print('')
+    print('# to deactivate: ')
+    deactivate_index = int(input())
+
+    json_data = conf_load_as_json()
+
+    for pack in json_data['ResourcePacks']:
+        if pack['SortingOrder'] == deactivate_index:
+            pack['Enabled'] = False
+            break
+
+    json_dump_to_conf(json_data)
 
 
-def pack_activate():
-    return
+def pack_activate(inactive_packs: list[InactivePack]):
+    print('')
+    print('# to activate: ')
+    inactive_index = int(input())
+
+    json_data = conf_load_as_json()
+    next_pack_index = compute_max_sort_index(json_data) + 1
+
+    pack_body = {
+        'FileName': inactive_packs[inactive_index].dir,
+        'Enabled': True,
+        'SortingOrder': next_pack_index
+    }
+
+    json_data['ResourcePacks'].append(pack_body)
+    json_dump_to_conf(json_data)
 
 
-def backup_config():
-    os.popen(f'copy \"{conf_path}\" \"{os.path.join(terraria_config_dir, 'config.json.bckp')}\"')
-    if not os.path.exists('conf.json'):
-        open('conf.json', 'w').write('{}')
-
-
-# Data Class, decorator sorgt für die nötigen standardfunktionen (constructor, compare, etc.)
-@dataclass
-class InactivePack:
-    name: str
-    type: str
-
-
-def show_inactive() -> list[InactivePack]:
-    config_json = load_conf_as_json()
+def pack_list_inactive() -> list[InactivePack]:
+    config_json = conf_load_as_json()
 
     # enabled_packs = set()
     # for pack in config_json['ResourcePacks']:
     #    if not pack['Enabled']:
     #        continue
     #    enabled_packs.add(pack['FileName'])
-
     # stattdessen Set Comprehension, (geht auch mit Listen und Dicts)
-    enabled_packs = {pack['FileName'] for pack in config_json['ResourcePacks'] if not pack['Enabled']}
+    enabled_packs = {pack['FileName'] for pack in config_json['ResourcePacks'] if pack['Enabled']}
 
     pack_dirs_entries = itertools.chain(steam_workshop_dir.iterdir(),
                                         terraria_config_dir.joinpath('ResourcePacks').iterdir())
     inactive_packs = []
     for entry in pack_dirs_entries:
-        if entry.is_file():
-            if entry.suffix == '.zip':
-                inactive_packs.append(InactivePack(entry.name, 'LOCAL ZIP'))
+        if entry.name in enabled_packs:
             continue
 
-        if entry.name in enabled_packs:
+        if entry.is_file():
+            if entry.suffix == '.zip':
+                inactive_packs.append(InactivePack(entry.name, 'LOCAL ZIP', entry.name))
             continue
 
         pack_path = get_pack_json_path(entry)
         if pack_path is not None:
             try:
-                fixed_file = get_safe_file(pack_path)
-                pack_name = json.loads(fixed_file)['Name']
+                safe_file_stub = get_safe_file(pack_path)
+                pack_name = json.loads(safe_file_stub)['Name']
 
             except:
-                print(f'ERROR: Name of pack {entry.name} could not be read.')
+                print_err(f'Name of pack {entry.name} could not be read.')
                 continue
 
             pack_type = 'LOCAL'
             if pack_path.is_relative_to(steam_workshop_dir):
-                pack_type = entry.name
-            inactive_packs.append(InactivePack(pack_name, pack_type))
+                pack_type = 'STEAM'
+
+            inactive_packs.append(InactivePack(pack_name, pack_type, entry.name))
         else:
-            print(f'ERROR: pack.json for {entry.name} does not exist.')
+            print_err(f'pack.json for {entry.name} does not exist.')
+
+    name_length = 0
+    type_length = 0
+    dir_length = 0
+    for pack in inactive_packs:
+        name_length = max(len(pack.name), name_length)
+        type_length = max(len(pack.type), type_length)
+        dir_length = max(len(pack.dir), dir_length)
+
     inactive_packs.sort(key=lambda x: x.name)
     for i, pack in enumerate(inactive_packs):
-        print(f'#{i:<3} - {pack.type:<10} - {pack.name}')
+        print(f'#{i:>3} - {pack.type:<{type_length}} - {pack.dir:<{dir_length}}\t- {pack.name:<{name_length}}')
     return inactive_packs
 
 
 def start():
-    backup_config()
-    list_packs(True)
-    inactive_packs = []
+    conf_backup()
+    pack_list_active(True)
     while True:
         print('Welcome to TRPH!')
-        # print('[1] => List Active Packs\n[2] => Reorder Pack\n[3] => Deactivate Pack\n[4] => List Inactive Packs\n[5] => Activate Pack\n[6] => Exit')
         print(
-            '[1] => List Active Packs\n[2] => Reorder Pack\n[4] => List Inactive Packs\n[6] => EXIT\n[7] => Manage Presets')
+            '[1] => List Active Packs\n'
+            '[2] => Reorder Pack\n'
+            '[3] => Deactivate Pack\n'
+            '[4] => List Inactive Packs\n'
+            '[5] => Activate Pack\n'
+            '[6] => EXIT\n'
+            '[7] => Manage Presets')
         prompt = input('> ')
         if prompt == '1':
-            list_packs(True)
+            pack_list_active(True)
         elif prompt == '2':
             pack_reorder()
         elif prompt == '3':
+            pack_list_active(True)
             pack_deactivate()
         elif prompt == '4':
-            inactive_packs = show_inactive()
+            pack_list_inactive()
         elif prompt == '5':
-            pack_activate()
+            inactive_packs = pack_list_inactive()
+            pack_activate(inactive_packs)
         elif prompt == '6':
             exit()
         elif prompt == '7':
             managePresets()
         else:
-            print('(ERROR) Invalid option passed, exiting.')
+            print_err('Invalid option passed, exiting.')
             exit()
 
 

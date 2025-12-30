@@ -3,8 +3,13 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Final, Optional
 
-from init import TERRARIA_CONFIG_PATH, TERRARIA_CONFIG_DIR
+# Pfade könnten auch als Path objekte implementiert werden
+TERRARIA_CONFIG_DIR: Final[Path] = Path('C:\\Users\\Joris\\Documents\\My games\\Terraria\\')
+STEAM_WORKSHOP_DIR: Final[Path] = Path('H:\\SteamLibrary\\steamapps\\workshop\\content\\105600')
+TERRARIA_CONFIG_PATH: Final[Path] = TERRARIA_CONFIG_DIR / 'config.json'
+alt_row: bool = False
 
 
 @dataclass
@@ -35,6 +40,15 @@ def conf_backup():
 
 def print_err(error: str):
     print('\033[31mERROR:\033[0m', error)
+
+
+def print_rows(line: str):
+    global alt_row
+    color = ''
+    if alt_row:
+        color = '\033[47m\033[30m'
+    alt_row = not alt_row
+    print(f'{color}{line}{color}\033[0m')
 
 
 def get_safe_file(path: Path) -> str:

@@ -1,14 +1,8 @@
 import itertools
 from sys import exit
-from typing import Final
 
 from presets import managePresets
 from utility import *
-
-# Pfade könnten auch als Path objekte implementiert werden
-TERRARIA_CONFIG_DIR: Final[Path] = Path('C:\\Users\\Joris\\Documents\\My games\\Terraria\\')
-STEAM_WORKSHOP_DIR: Final[Path] = Path('H:\\SteamLibrary\\steamapps\\workshop\\content\\105600')
-TERRARIA_CONFIG_PATH: Final[Path] = TERRARIA_CONFIG_DIR / 'config.json'
 
 
 # Data Class, decorator sorgt für die nötigen standardfunktionen (constructor, compare, etc.)
@@ -47,7 +41,7 @@ def pack_list_active(active: bool):
         else:
             error = f'{directory_name} not found on disk'
 
-        print(f'#{pack['SortingOrder']:>3} - {path_type:<10} - {strip_color_codes(pack_name)}')
+        print_rows(f'#{pack['SortingOrder']:>3} - {path_type:<10} - {strip_color_codes(pack_name):<30}')
         if error is not None:
             print_err(error)
 
@@ -188,11 +182,8 @@ def pack_list_inactive() -> list[InactivePack]:
 
     inactive_packs.sort(key=lambda x: x.name)
     for i, pack in enumerate(inactive_packs):
-        color = ''
-        if i % 2 == 0:
-            color = '\033[47m\033[30m'
-        print(
-            f'{color}#{i:>3} - {pack.type:<{type_length}} - {pack.dir[:30]:<{dir_length}}\t- {strip_color_codes(pack.name):<{name_length}}\033[0m')
+        print_rows(
+            f'#{i:>3} - {pack.type:<{type_length}} - {pack.dir[:30]:<{dir_length}}\t- {strip_color_codes(pack.name):<{name_length}}')
     return inactive_packs
 
 
@@ -201,35 +192,35 @@ def start():
     while True:
         print('Welcome to TRPH!')
         print(
-            '[a] => Activate Pack\n'
-            '[d] => Deactivate Pack\n'
-            '[l] => List Active Packs\n'
-            '[i] => List Inactive Packs\n'
-            '[m] => Move Pack\n'
-            '[p] => Manage Presets\n'
-            '[exit] => EXIT\n'
+            '1. [l] => List Active Packs\n'
+            '2. [i] => List Inactive Packs\n'
+            '3. [m] => Move Pack\n'
+            '4. [a] => Activate Pack\n'
+            '5. [d] => Deactivate Pack\n'
+            '6. [p] => Manage Presets\n'
+            '7. [exit] => EXIT\n'
         )
 
         prompt = input('> ')
-        if prompt == 'l':
+        if prompt == 'a' or prompt == '4':
+            inactive_packs = pack_list_inactive()
+            pack_activate(inactive_packs)
+        elif prompt == 'd' or prompt == '5':
             pack_list_active(True)
-        elif prompt == 'm':
+            pack_deactivate()
+        elif prompt == 'l' or prompt == '1':
+            pack_list_active(True)
+        elif prompt == 'i' or prompt == '2':
+            pack_list_inactive()
+        elif prompt == 'm' or prompt == '3':
             pack_list_active(True)
             # könnte auch in der Funktion mit while error == True: gemacht werden
             while not pack_reorder():
                 continue
-        elif prompt == 'd':
-            pack_list_active(True)
-            pack_deactivate()
-        elif prompt == 'i':
-            pack_list_inactive()
-        elif prompt == 'a':
-            inactive_packs = pack_list_inactive()
-            pack_activate(inactive_packs)
-        elif prompt == 'exit':
-            exit()
-        elif prompt == 'p':
+        elif prompt == 'p' or prompt == '6':
             managePresets()
+        elif prompt == 'exit' or prompt == '7':
+            exit()
         else:
             print_err('Invalid option passed!.')
 

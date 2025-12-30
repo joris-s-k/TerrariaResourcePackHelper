@@ -4,14 +4,14 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from sys import exit
-from typing import Optional
+from typing import Optional, Final
 
 from presets import managePresets
 
 # Pfade könnten auch als Path objekte implementiert werden
-terraria_config_dir = Path('C:\\Users\\Joris\\Documents\\My games\\Terraria\\')
-steam_workshop_dir = Path('H:\\SteamLibrary\\steamapps\\workshop\\content\\105600')
-conf_path = terraria_config_dir / 'config.json'
+TERRARIA_CONFIG_DIR: Final[Path] = Path('C:\\Users\\Joris\\Documents\\My games\\Terraria\\')
+STEAM_WORKSHOP_DIR: Final[Path] = Path('H:\\SteamLibrary\\steamapps\\workshop\\content\\105600')
+TERRARIA_CONFIG_PATH: Final[Path] = TERRARIA_CONFIG_DIR / 'config.json'
 
 
 # Data Class, decorator sorgt für die nötigen standardfunktionen (constructor, compare, etc.)
@@ -27,28 +27,28 @@ def print_err(error: str):
 
 
 def conf_load_as_json() -> dict:
-    if not conf_path.exists():
-        raise FileNotFoundError(f'ERROR: Config file not found at {conf_path}')
+    if not TERRARIA_CONFIG_PATH.exists():
+        raise FileNotFoundError(f'ERROR: Config file not found at {TERRARIA_CONFIG_PATH}')
 
-    with conf_path.open('r') as config_fp:
+    with TERRARIA_CONFIG_PATH.open('r') as config_fp:
         return json.load(config_fp)
 
 
 def json_dump_to_conf(json_data: dict) -> None:
-    with conf_path.open('w') as config:
+    with TERRARIA_CONFIG_PATH.open('w') as config:
         json.dump(json_data, config, indent=4)
 
 
 def conf_backup():
-    os.popen(f'copy \"{conf_path}\" \"{terraria_config_dir / 'config.json.bckp'}\"')
+    os.popen(f'copy \"{TERRARIA_CONFIG_PATH}\" \"{TERRARIA_CONFIG_DIR / 'config.json.bckp'}\"')
     if not os.path.exists('conf.json'):
         open('conf.json', 'w').write('{}')
 
 
 def get_safe_file(path: Path) -> str:
-    with path.open('r', encoding='utf-8-sig') as unsafeFile:
+    with path.open('r', encoding='utf-8-sig') as unsafe_file:
         file_stub = []
-        for line in unsafeFile:
+        for line in unsafe_file:
             file_stub.append(line)
             if 'Name' in line:
                 break
@@ -68,7 +68,7 @@ def pack_list_active(active: bool):
     json_data = conf_load_as_json()
 
     print('Printing Active Packs')
-    print(f'Order\t- ID      \t- Name')
+    print(f'Nr.  - ID         - Name')
 
     for pack in sorted(json_data['ResourcePacks'], key=lambda x: x['SortingOrder']):
         error = None
@@ -76,8 +76,8 @@ def pack_list_active(active: bool):
             continue
         directory_name = pack['FileName']
         pack_name = pack['FileName']
-        steam_dir = steam_workshop_dir / directory_name
-        local_dir = terraria_config_dir / 'ResourcePacks' / directory_name
+        steam_dir = STEAM_WORKSHOP_DIR / directory_name
+        local_dir = TERRARIA_CONFIG_DIR / 'ResourcePacks' / directory_name
         pack_dir = None
         path_type = pack_name
         if steam_dir.exists():
@@ -92,8 +92,8 @@ def pack_list_active(active: bool):
                 error = f'pack.json for {pack_name} not found.'
             else:
                 try:
-                    fixedFile = get_safe_file(pack_file_path)
-                    pack_name = json.loads(fixedFile)['Name']
+                    fixed_file = get_safe_file(pack_file_path)
+                    pack_name = json.loads(fixed_file)['Name']
                 except:
                     error = f'Name of pack {pack_name} could not be read.'
         else:
@@ -204,8 +204,8 @@ def pack_list_inactive() -> list[InactivePack]:
     # stattdessen Set Comprehension, (geht auch mit Listen und Dicts)
     enabled_packs = {pack['FileName'] for pack in config_json['ResourcePacks'] if pack['Enabled']}
 
-    pack_dirs_entries = itertools.chain(steam_workshop_dir.iterdir(),
-                                        terraria_config_dir.joinpath('ResourcePacks').iterdir())
+    pack_dirs_entries = itertools.chain(STEAM_WORKSHOP_DIR.iterdir(),
+                                        TERRARIA_CONFIG_DIR.joinpath('ResourcePacks').iterdir())
     inactive_packs = []
     for entry in pack_dirs_entries:
         if entry.name in enabled_packs:
@@ -227,7 +227,7 @@ def pack_list_inactive() -> list[InactivePack]:
                 continue
 
             pack_type = 'LOCAL'
-            if pack_path.is_relative_to(steam_workshop_dir):
+            if pack_path.is_relative_to(STEAM_WORKSHOP_DIR):
                 pack_type = 'STEAM'
 
             inactive_packs.append(InactivePack(pack_name, pack_type, entry.name))
@@ -240,11 +240,15 @@ def pack_list_inactive() -> list[InactivePack]:
     for pack in inactive_packs:
         name_length = max(len(pack.name), name_length)
         type_length = max(len(pack.type), type_length)
-        dir_length = max(len(pack.dir), dir_length)
+        dir_length = min(max(len(pack.dir), dir_length), 30)
 
     inactive_packs.sort(key=lambda x: x.name)
     for i, pack in enumerate(inactive_packs):
-        print(f'#{i:>3} - {pack.type:<{type_length}} - {pack.dir:<{dir_length}}\t- {pack.name:<{name_length}}')
+        color = ''
+        if i % 2 == 0:
+            color = '\033[47m\033[30m'
+        print(
+            f'{color}#{i:>3} - {pack.type:<{type_length}} - {pack.dir[:30]:<{dir_length}}\t- {pack.name:<{name_length}}\033[0m')
     return inactive_packs
 
 

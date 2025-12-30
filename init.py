@@ -1,6 +1,7 @@
 import itertools
 import json
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from sys import exit
@@ -64,6 +65,10 @@ def get_pack_json_path(pack_path: Path) -> Optional[Path]:
     return pack_file_path
 
 
+def strip_color_codes(string: str) -> str:
+    return re.sub(r'\[c\/[0-9a-fA-F]{6}:([^\]]+)\]', r'\1', string)
+
+
 def pack_list_active(active: bool):
     json_data = conf_load_as_json()
 
@@ -99,7 +104,7 @@ def pack_list_active(active: bool):
         else:
             error = f'{directory_name} not found on disk'
 
-        print(f'#{pack['SortingOrder']:>3} - {path_type:<10} - {pack_name}')
+        print(f'#{pack['SortingOrder']:>3} - {path_type:<10} - {strip_color_codes(pack_name)}')
         if error is not None:
             print_err(error)
 
@@ -248,7 +253,7 @@ def pack_list_inactive() -> list[InactivePack]:
         if i % 2 == 0:
             color = '\033[47m\033[30m'
         print(
-            f'{color}#{i:>3} - {pack.type:<{type_length}} - {pack.dir[:30]:<{dir_length}}\t- {pack.name:<{name_length}}\033[0m')
+            f'{color}#{i:>3} - {pack.type:<{type_length}} - {pack.dir[:30]:<{dir_length}}\t- {strip_color_codes(pack.name):<{name_length}}\033[0m')
     return inactive_packs
 
 

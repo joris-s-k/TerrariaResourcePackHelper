@@ -108,21 +108,33 @@ def compute_max_sort_index(json_data: dict) -> int:
     return max((pack['SortingOrder'] for pack in json_data['ResourcePacks']), default=0)
 
 
-def pack_reorder():
-    pack_list_active(True)
+def pack_reorder() -> bool:
     print('')
-    print('Current position: ')
-    old = int(input())
-    print('New position: ')
-    new = int(input())
+    try:
+        print('Current position: ')
+        old = int(input())
+        print('New position: ')
+        new = int(input())
+    except:
+        print_err('Not a valid integer!')
+        return False
+
     # if old > new
     #    if x < old and x >= new -> x=x+1
     # if old < new
     #    if x > old and x <= new -> x=x-1
     if old == new:
-        return
+        return True
 
     json_data = conf_load_as_json()
+
+    if old not in {pack['SortingOrder'] for pack in json_data['ResourcePacks']}:
+        print_err(f'Index for current position is out of bounds!')
+        return False
+
+    if new < 0:
+        print_err('Index for new position is invalid!')
+        return False
 
     for pack in json_data['ResourcePacks']:
         if not pack['Enabled']:
@@ -145,6 +157,7 @@ def pack_reorder():
         pack.update({'SortingOrder': val})
         print(f'Was at {x:>3} moved to {val:>3} - {pack['FileName']}')
     json_dump_to_conf(json_data)
+    return True
 
 
 def pack_deactivate():
@@ -237,7 +250,6 @@ def pack_list_inactive() -> list[InactivePack]:
 
 def start():
     conf_backup()
-    pack_list_active(True)
     while True:
         print('Welcome to TRPH!')
         print(
@@ -254,7 +266,10 @@ def start():
         if prompt == 'l':
             pack_list_active(True)
         elif prompt == 'm':
-            pack_reorder()
+            pack_list_active(True)
+            # könnte auch in der Funktion mit while error == True: gemacht werden
+            while not pack_reorder():
+                continue
         elif prompt == 'd':
             pack_list_active(True)
             pack_deactivate()

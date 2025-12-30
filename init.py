@@ -11,7 +11,6 @@ from presets import managePresets
 # Pfade könnten auch als Path objekte implementiert werden
 terraria_config_dir = Path('C:\\Users\\Joris\\Documents\\My games\\Terraria\\')
 steam_workshop_dir = Path('H:\\SteamLibrary\\steamapps\\workshop\\content\\105600')
-conf_path = os.path.join(terraria_config_dir, 'config.json')
 conf_path = terraria_config_dir / 'config.json'
 
 
@@ -36,9 +35,6 @@ def conf_load_as_json() -> dict:
 
 
 def json_dump_to_conf(json_data: dict) -> None:
-    if not conf_path.exists():
-        raise FileNotFoundError(f'ERROR: Config file not found at {conf_path}')
-
     with conf_path.open('w') as config:
         json.dump(json_data, config, indent=4)
 
@@ -245,33 +241,34 @@ def start():
     while True:
         print('Welcome to TRPH!')
         print(
-            '[1] => List Active Packs\n'
-            '[2] => Reorder Pack\n'
-            '[3] => Deactivate Pack\n'
-            '[4] => List Inactive Packs\n'
-            '[5] => Activate Pack\n'
-            '[6] => EXIT\n'
-            '[7] => Manage Presets')
+            '[a] => Activate Pack\n'
+            '[d] => Deactivate Pack\n'
+            '[l] => List Active Packs\n'
+            '[i] => List Inactive Packs\n'
+            '[m] => Move Pack\n'
+            '[p] => Manage Presets\n'
+            '[exit] => EXIT\n'
+        )
+
         prompt = input('> ')
-        if prompt == '1':
+        if prompt == 'l':
             pack_list_active(True)
-        elif prompt == '2':
+        elif prompt == 'm':
             pack_reorder()
-        elif prompt == '3':
+        elif prompt == 'd':
             pack_list_active(True)
             pack_deactivate()
-        elif prompt == '4':
+        elif prompt == 'i':
             pack_list_inactive()
-        elif prompt == '5':
+        elif prompt == 'a':
             inactive_packs = pack_list_inactive()
             pack_activate(inactive_packs)
-        elif prompt == '6':
+        elif prompt == 'exit':
             exit()
-        elif prompt == '7':
+        elif prompt == 'p':
             managePresets()
         else:
             print_err('Invalid option passed, exiting.')
-            exit()
 
 
 start()

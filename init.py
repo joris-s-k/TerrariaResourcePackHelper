@@ -101,6 +101,7 @@ def pack_deactivate():
     for pack in json_data['ResourcePacks']:
         if pack['SortingOrder'] == deactivate_index:
             pack['Enabled'] = False
+            print(f'Deactivated {pack['FileName']} at Index #{pack['SortingOrder']}\n')
             break
     
     json_dump_to_conf(json_data)
@@ -118,7 +119,9 @@ def pack_activate(inactive_packs: list[InactivePack]):
         'Enabled': True,
         'SortingOrder': next_pack_index
     }
-
+    
+    print(f'Activated {inactive_packs[inactive_index].dir} at Index #{next_pack_index}\n')
+    
     json_data['ResourcePacks'].append(pack_body)
     json_dump_to_conf(json_data)
 

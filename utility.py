@@ -7,6 +7,7 @@ from typing import Final, Optional
 
 # Pfade könnten auch als Path objekte implementiert werden
 TERRARIA_CONFIG_DIR: Final[Path] = Path('C:\\Users\\Joris\\Documents\\My games\\Terraria\\')
+# TERRARIA_CONFIG_DIR: Final[Path] = Path('C:\\Users\\Joris\\Documents\\My games\\Terraria\\tModLoader\\')
 STEAM_WORKSHOP_DIR: Final[Path] = Path('H:\\SteamLibrary\\steamapps\\workshop\\content\\105600')
 TERRARIA_CONFIG_PATH: Final[Path] = TERRARIA_CONFIG_DIR / 'config.json'
 alt_row: bool = False
@@ -76,3 +77,11 @@ def compute_max_sort_index(json_data: dict) -> int:
 
 def strip_color_codes(string: str) -> str:
     return re.sub(r'\[c\/[0-9a-fA-F]{6}:([^\]]+)\]', r'\1', string)
+
+
+def input_validated_int(prompt: str) -> int:
+    while True:
+        try:
+            return int(input(prompt))
+        except:
+            print_err('Not a valid integer!')

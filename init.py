@@ -1,7 +1,7 @@
 import itertools
 from sys import exit
 
-from presets import managePresets
+from presets import manage_presets
 from utility import *
 
 
@@ -48,14 +48,8 @@ def pack_list_active(active: bool):
 
 def pack_reorder() -> bool:
     print('')
-    try:
-        print('Current position: ')
-        old = int(input())
-        print('New position: ')
-        new = int(input())
-    except:
-        print_err('Not a valid integer!')
-        return False
+    old = input_validated_int('Current position: ')
+    new = input_validated_int('New position: ')
 
     # if old > new
     #    if x < old and x >= new -> x=x+1
@@ -100,8 +94,7 @@ def pack_reorder() -> bool:
 
 def pack_deactivate():
     print('')
-    print('# to deactivate: ')
-    deactivate_index = int(input())
+    deactivate_index = input_validated_int('# to deactivate: ')
 
     json_data = conf_load_as_json()
 
@@ -109,14 +102,13 @@ def pack_deactivate():
         if pack['SortingOrder'] == deactivate_index:
             pack['Enabled'] = False
             break
-
+    
     json_dump_to_conf(json_data)
 
 
 def pack_activate(inactive_packs: list[InactivePack]):
     print('')
-    print('# to activate: ')
-    inactive_index = int(input())
+    inactive_index = input_validated_int('# to activate: ')
 
     json_data = conf_load_as_json()
     next_pack_index = compute_max_sort_index(json_data) + 1
@@ -218,7 +210,7 @@ def start():
             while not pack_reorder():
                 continue
         elif prompt == 'p' or prompt == '6':
-            managePresets()
+            manage_presets()
         elif prompt == 'exit' or prompt == '7':
             exit()
         else:

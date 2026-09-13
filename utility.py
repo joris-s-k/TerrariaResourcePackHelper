@@ -11,6 +11,10 @@ TERRARIA_CONFIG_DIR: Final[Path] = Path('C:\\Users\\Joris\\Documents\\My games\\
 STEAM_WORKSHOP_DIR: Final[Path] = Path('H:\\SteamLibrary\\steamapps\\workshop\\content\\105600')
 TERRARIA_CONFIG_PATH: Final[Path] = TERRARIA_CONFIG_DIR / 'config.json'
 alt_row: bool = False
+steam_names_dictionary: dict = {}
+
+def lookup_pack_name(pack_file_name:str) -> str:
+    return steam_names_dictionary.get(pack_file_name, pack_file_name)
 
 
 @dataclass

@@ -5,6 +5,7 @@ from presets import manage_presets
 from utility import *
 
 
+
 # Data Class, decorator sorgt für die nötigen standardfunktionen (constructor, compare, etc.)
 def pack_list_active(active: bool):
     json_data = conf_load_as_json()
@@ -24,6 +25,7 @@ def pack_list_active(active: bool):
         path_type = pack_name
         if steam_dir.exists():
             pack_dir = steam_dir
+            steam_names_dictionary[directory_name] = pack_name
         elif local_dir.exists():
             pack_dir = local_dir
             path_type = "LOCAL"
@@ -36,6 +38,7 @@ def pack_list_active(active: bool):
                 try:
                     fixed_file = get_safe_file(pack_file_path)
                     pack_name = json.loads(fixed_file)['Name']
+                        
                 except:
                     error = f'Name of pack {pack_name} could not be read.'
         else:
@@ -87,7 +90,11 @@ def pack_reorder() -> bool:
             else:
                 continue
         pack.update({'SortingOrder': val})
-        print(f'Was at {x:>3} moved to {val:>3} - {pack['FileName']}')
+
+        pack_file_name = pack['FileName']
+        pack_name = steam_names_dictionary.get(pack_file_name, pack_file_name)
+
+        print(f'Was at {x:>3} moved to {val:>3} - {pack_name}')
     json_dump_to_conf(json_data)
     return True
 
@@ -101,7 +108,9 @@ def pack_deactivate():
     for pack in json_data['ResourcePacks']:
         if pack['SortingOrder'] == deactivate_index:
             pack['Enabled'] = False
-            print(f'Deactivated {pack['FileName']} at Index #{pack['SortingOrder']}\n')
+
+            pack_name = lookup_pack_name(pack['FileName'])
+            print(f'Deactivated {pack_name} at Index #{pack['SortingOrder']}\n')
             break
     
     json_dump_to_conf(json_data)
@@ -120,7 +129,8 @@ def pack_activate(inactive_packs: list[InactivePack]):
         'SortingOrder': next_pack_index
     }
     
-    print(f'Activated {inactive_packs[inactive_index].dir} at Index #{next_pack_index}\n')
+    pack_name = lookup_pack_name(inactive_packs[inactive_index].dir)
+    print(f'Activated {pack_name} at Index #{next_pack_index}\n')
     
     json_data['ResourcePacks'].append(pack_body)
     json_dump_to_conf(json_data)
